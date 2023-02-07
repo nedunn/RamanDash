@@ -36,8 +36,12 @@ app.layout = html.Div([
 
 def build_fig(df,x,y,name):
     fig=px.line(df,x=x,y=y)
-    fig.update_layout(template='simple_white')
+    fig.update_layout(template='simple_white',xaxis_title='Raman Shift (cm-1)',yaxis_title='Intensity')
+    fig.add_annotation(xref='paper',yref='paper',showarrow=False,text=name.split('.csv')[0],
+                       x=1,y=1.1)
     return fig
+
+
 
 def parse_contents(content_string):
     decoded = pd.read_csv(io.StringIO(base64.b64decode(content_string).decode('utf-8')))
@@ -65,7 +69,25 @@ if __name__ == '__main__':
 
 
 
+#___CONVERT TO SUBPLOTS___
+# import plotly.subplots as sp
 
+# @app.callback(Output('output-data-upload', 'children'),
+#               [Input('upload-data', 'contents'),
+#                Input('upload-data', 'filename')])
+# def update_output(list_of_contents, list_of_names):
+#     if list_of_contents is not None:
+#         children = []
+#         fig = sp.make_subplots(rows=len(list_of_contents), cols=1,
+#                                vertical_spacing=0.2)
+#         for i, (content_string, name) in enumerate(zip(list_of_contents, list_of_names)):
+#             content_type, content_string = content_string.split(',')
+#             decoded = parse_contents(content_string)
+#             fig.add_trace(px.line(decoded, x=decoded.columns[0], y=decoded.columns[1]),
+#                           row=i+1, col=1)
+#             fig.update_layout(title=name)
+#         children.append(dcc.Graph(figure=fig))
+#         return children
 
 
 
