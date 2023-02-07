@@ -11,7 +11,9 @@ import io
 import base64
 import plotly.subplots as sp
 
-
+#__________
+#Set up initial app
+#__________
 app = dash.Dash(__name__)
 
 app.layout = html.Div([
@@ -35,8 +37,28 @@ app.layout = html.Div([
     ),
     html.Div(id='output-data-upload'),
 
+    html.Div([html.Label('Enter Title: '),
+              dcc.Input(id='title-input',placeholder='')]),
+    
+
+    html.Div([html.Label('Set Title Text Size: '),
+              dcc.Input(id='title-size',value=40,type='number')],
+              style={'margin-top':'10px'}),
+    
+    html.Div([html.Label('Enter Raman Spectra details: '),
+              dcc.Input(id='details',value=' ',placeholder='separate with comma')],
+              style={'margin-top':'10px'}),
+    
+    html.Div([html.Label('Enter peak values: '),
+              dcc.Input(id='peaks', placeholder='comma separated values')
+            #html.Button('Update Plot', id='submit'),
+            ],
+            style={'margin-top':'10px'})
 ])
 
+#__________
+#Figure Making Functions
+#__________
 def build_fig(df,x,y,name):
     fig=px.line(df,x=x,y=y)
     fig.update_layout(template='simple_white',xaxis_title='Raman Shift (cm-1)',yaxis_title='Intensity')
@@ -49,22 +71,31 @@ def trace(x,y,name,i,fig):
     fig.update_layout(template='simple_white')
     return fig
 
-
 def data_grab(x,y,name):
     #x,y=pd.Series(x),pd.Series(y)
     df=pd.DataFrame([x,y]).T
     #df['name']=name.split('.csv')[0]
     print(df)
 
+#__________
+#Read Input Data
+#__________
 def parse_contents(content_string):
     decoded = pd.read_csv(io.StringIO(base64.b64decode(content_string).decode('utf-8')))
     return decoded
 
 @app.callback(Output('output-data-upload', 'children'),
               [Input('upload-data', 'contents'),
-               Input('upload-data','filename')])
+               Input('upload-data','filename'),
+               Input('title-input','value'),
+               Input('details','value'),
+               Input('title-size','value'),
+               Input('peaks','value')])
 
-def update_output(list_of_contents, list_of_names):
+#__________
+#Apply Update
+#__________
+def update_output(list_of_contents, list_of_names,title,details,tsize,peaks):
     if list_of_contents is not None:
         num=len(list_of_contents) #Number of files uploaded
         fig=sp.make_subplots(rows=num,cols=1,vertical_spacing=0, #initialize figure
@@ -79,8 +110,25 @@ def update_output(list_of_contents, list_of_names):
             x,y=decoded.iloc[:,0],decoded.iloc[:,1]
             fig=trace(x,y,name,i,fig)
             i=i+1
+        fig.add_annotation(xref='paper',yref='paper',showarrow=False,
+                           xanchor='left',x=1,y=1.02,text=details)
+        fig.update_layout(title_text=title,title_font_size=tsize,
+                          legend=dict(yanchor='bottom',y=0))
+        
+        if peaks is not None:
+            numbers=[int(num) for num in peaks.split(',')]
+            for n in numbers:
+
+                fig.add_vline(x=n,line_width=0.5,opacity=0.4)
+                fig.add_annotation(x=n,y=1.1,yref='paper',text=f'{n:.0f}',showarrow=False,textangle=-50)
+
+        
         children.append(dcc.Graph(id='graph',figure=fig))
         return children
+    
+#__________
+#Run it!
+#__________
 if __name__ == '__main__':
     app.run_server(debug=True)
 
@@ -165,8 +213,3 @@ if __name__ == '__main__':
 #             fig.update_layout(title=name)
 #         children.append(dcc.Graph(figure=fig))
 #         return children
-
-
-
-
-
