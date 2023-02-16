@@ -147,6 +147,191 @@ if __name__ == '__main__':
     app.run_server(debug=True)
 
 
+'''
+import dash
+from dash import dcc
+from dash import html
+from dash import dash_table
+import pandas as pd
+from dash.dependencies import Input, Output, State
+import plotly.express as px
+import plotly.graph_objects as go
+import numpy as np
+import io
+import base64
+import plotly.subplots as sp
+
+#__________
+#Set up initial app
+#__________
+app = dash.Dash(__name__)
+
+app.layout = html.Div([
+    dcc.Upload(
+        id='upload-data',
+        children=html.Div([
+            'Drag and Drop or ',
+            html.A('Select Files')
+        ]),
+        multiple=True,
+        style={
+            'width': '100%',
+            'height': '60px',
+            'lineHeight': '60px',
+            'borderWidth': '1px',
+            'borderStyle': 'dashed',
+            'borderRadius': '5px',
+            'textAlign': 'center',
+            'margin': '10px'
+        }
+    ),
+    html.Div(id='output-data-upload'),
+
+    html.Div([html.Label('Enter Title: '),
+              dcc.Input(id='title-input',placeholder='')]),
+    
+
+    html.Div([html.Label('Set Title Text Size: '),
+              dcc.Input(id='title-size',value=40,type='number')],
+              style={'margin-top':'10px'}),
+    
+    html.Div([html.Label('Enter Raman Spectra details: '),
+              dcc.Input(id='details',value=' ',placeholder='separate with comma')],
+              style={'margin-top':'20px'}),
+
+    html.Div([html.Label('Set spectra details size: '),
+              dcc.Input(id='det-size',value=20,type='number')],
+              style={'margin-top':'10px'}),
+
+    html.Div([html.Label('Set spectra details X-axis location: '),
+              dcc.Input(id='det-ax',value=1,type='number')],
+              style={'margin-top':'10px'}),
+    html.Div([html.Label('Set spectra details Y-axis location: '),
+              dcc.Input(id='det-ay',value=1.02,type='number')],
+              style={'margin-top':'10px'}),
+
+    html.Div([html.Label('Set legend text size: '),
+              dcc.Input(id='leg-size',value=20,type='number')],
+              style={'margin-top':'20px'}),
+    html.Div([html.Label('Set figure height: '),
+    html.Div([html.Label('Set figure height: '),
+              dcc.Input(id='fig-h',value=450,type='number')],
+              style={'margin-top':'10px'}),
+    html.Div([html.Label('Set figure width: '),
+              dcc.Input(id='fig-w',value=1700,type='number')],
+              style={'margin-top':'10px'}),
+    
+    html.Div([html.Label('Enter peak values: '),
+              dcc.Input(id='peaks', placeholder='comma separated values')],
+            style={'margin-top':'20px'}),
+
+    html.Div([html.Label('Set peak label size: '),
+              dcc.Input(id='peak-size',value=20,type='number')],
+              style={'margin-top':'10px'}),
+    html.Div([html.Label('Set peak label height: '),
+              dcc.Input(id='peak-ay',value=1.1,type='number')],
+              style={'margin-top':'10px'}),
+
+    #html.Div([html.Label])
+    
+    html.Div([html.Button('Update Plot',id='submit')])
+    #html.Div([html.Button('Clear',id='clear')])
+])
+
+#__________
+#Figure Making Functions
+#__________
+def build_fig(df,x,y,name):
+    fig=px.line(df,x=x,y=y)
+    fig.update_layout(template='simple_white',xaxis_title='Raman Shift (cm-1)',yaxis_title='Intensity')
+    fig.add_annotation(xref='paper',yref='paper',showarrow=False,text=name.split('.csv')[0],
+                       x=1,y=1.1)
+    return fig
+
+def trace(x,y,name,i,fig):
+    fig.add_trace(go.Scatter(x=x,y=y,name=name.split('.csv')[0]),row=i,col=1)
+    fig.update_layout(template='simple_white')
+    return fig
+
+def data_grab(x,y,name):
+    #x,y=pd.Series(x),pd.Series(y)
+    df=pd.DataFrame([x,y]).T
+    #df['name']=name.split('.csv')[0]
+    print(df)
+
+#__________
+#Read Input Data
+#__________
+def parse_contents(content_string):
+    decoded = pd.read_csv(io.StringIO(base64.b64decode(content_string).decode('utf-8')))
+    return decoded
+
+
+
+@app.callback(Output('output-data-upload', 'children'),
+              [Input('upload-data', 'contents'),
+               Input('upload-data','filename'),
+               Input('submit','n_clicks')],
+               [State('title-input','value'),
+               State('details','value'),
+               State('det-size','value'),
+               State('det-ax','value'),
+               State('det-ay','value'),
+               State('title-size','value'),
+               State('leg-size','value'),
+               State('fig-h','value'),
+               State('fig-w','value'),
+               State('peak-size','value'),
+               State('peak-ay','value'),
+               State('peaks','value')])
+
+#__________
+#Apply Update
+#__________
+def update_output(list_of_contents, list_of_names,n_clicks,title,details,dsize,ax,ay,
+                  tsize,lsize,fig_h,fig_w,psize,p_ay,peaks):
+    if list_of_contents is not None:
+        num=len(list_of_contents) #Number of files uploaded
+        fig=sp.make_subplots(rows=num,cols=1,vertical_spacing=0, #initialize figure
+                             shared_xaxes=True,
+                             x_title='Raman  Shift (cm-1)',
+                             y_title='Intensity') 
+        i=1
+        children=[]
+        for content_string, name in zip(list_of_contents,list_of_names):
+            content_type, content_string = content_string.split(',')
+            decoded = parse_contents(content_string)
+            x,y=decoded.iloc[:,0],decoded.iloc[:,1]
+            fig=trace(x,y,name,i,fig)
+            i=i+1
+        fig.add_annotation(xref='paper',yref='paper',showarrow=False,
+                           xanchor='left',x=ax,y=ay,text=details,
+                           font_size=dsize)
+        fig.update_layout(title_text=title,title_font_size=tsize,
+                          legend=dict(yanchor='bottom',y=0),
+                          legend_font_size=lsize,
+                          height=fig_h, width=fig_w)
+        
+        if peaks is not None:
+            numbers=[int(num) for num in peaks.split(',')]
+            for n in numbers:
+                fig.add_vline(x=n,line_width=0.5,opacity=0.4)
+                fig.add_annotation(x=n,y=p_ay,yref='paper',text=f'{n:.0f}',
+                                   showarrow=False,textangle=-50,
+                                   font_size=psize)
+        
+        children.append(dcc.Graph(id='graph',figure=fig))
+        return children
+
+
+    
+#__________
+#Run it!
+#__________
+if __name__ == '__main__':
+    app.run_server(debug=True)
+'''
+
 
 #__________
 #multip call backs
@@ -263,3 +448,5 @@ if __name__ == '__main__':
 #             fig.update_layout(title=name)
 #         children.append(dcc.Graph(figure=fig))
 #         return children
+
+#'title-input','title-size','details','det-size','det-ax','det-ay','peaks','peak-size','peak-height','legend'
