@@ -12,7 +12,16 @@ import base64
 import plotly.subplots as sp
 #https://dash.plotly.com/layout
 
+'''Figure features to add:
+truncate
+peak label size
+set y axis range'''
+
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+
+######################################################
+#Layout Functions
+######################################################
 
 def slider_layout():
     return {'placement':'bottom','always_visible':True}#,{'padding':20,'flex':1}#{'width':'50%','display':'flex',}
@@ -25,6 +34,7 @@ def upload():
                                            'borderStyle': 'dashed','borderRadius': '5px',
                                            'textAlign': 'center','margin': '1px'}),
             html.Div(id='output-data-upload')])
+            #dcc.Graph(id='graph',figure=go.Figure())])
 
 def input_style():
     return{'padding':20,'flex':1}
@@ -120,15 +130,11 @@ app.layout = build_layout()
     Input('det-ay','value'),
     Input('peak-size','value'),
     Input('peak-height','value'),
-    Input('legend','value')],
-    [State('title-input','value'),
-     State('details','value'),
-     State('peaks','value')]
+    Input('legend','value'),
+    Input('title-input','value'),
+    Input('details','value'),
+    Input('peaks','value')]
     )
-
-# def update_output(value):
-#     return 'You have selected "{}"'.format(value)
-
 
 
 
@@ -141,7 +147,9 @@ def update_output(list_of_contents,list_of_filenames, #Input from Files
         num=len(list_of_filenames) #Get # of files uploaded
         #Initalize empty plot
         fig=sp.make_subplots(rows=num,cols=1,vertical_spacing=0,
-                             shared_xaxes=True)
+                             shared_xaxes=True,
+                             x_title='Raman  Shift (cm-1)',
+                             y_title='Intensity')
         
         i=1
         children=[]
