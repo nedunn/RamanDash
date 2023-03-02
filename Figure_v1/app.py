@@ -41,7 +41,7 @@ comp_title = html.Div([
         dcc.Input(id='title-input', size='30',placeholder='')],style={'padding':20,'flex':1})
 comp_details=html.Div([
     html.Label('Enter Raman collection details: '),
-    dcc.Input(id='details', size='30',placeholder='532nm, 10mW, 40X, 60s')],style={'padding':20,'flex':1})
+    dcc.Input(id='details', size='30',placeholder='532nm, 10mW, 40X, 60s',value='')],style={'padding':20,'flex':1})
 comp_peak_list=html.Div([
     html.Label('Enter Raman peaks: '),
     dcc.Input(id='peaks',size='60',placeholder='comma separated values')],style={'padding':20,'flex':1})
@@ -93,6 +93,17 @@ def sec2B():
         dcc.Slider(10,30,value=20,id='legend',tooltip=slider_layout)
         ],
         style=indiv_style)
+
+# set_order=html.Div(
+#     html.Label('Trace order: '),
+#     dcc.Dropdown(
+#     id='trace-order',
+#     options=[{'label': f'Trace {i}', 'value': i} for i in range(1, num+1)],
+#     value=[i for i in range(1, num+1)],
+#     multi=True,
+#     clearable=True
+#     )
+# )
 
 def build_inputs():
     return html.Div(html.Div([sec2A(),sec2B()],
@@ -190,8 +201,7 @@ def update_output(list_of_contents,list_of_filenames, #Input from Files
             elif rs_end is not None:
                 in_a=find_index(decoded,int(rs_end))
                 decoded=decoded.truncate(after=in_a)
-            #start=find_index(decoded,trunc_b)
-            #decoded=decoded.truncate(before=start,after=trunc_a)
+            
             x,y=decoded.iloc[:,0],decoded.iloc[:,1]
             fig=trace(x,y,name,i,fig)
             i=i+1
